@@ -1,0 +1,36 @@
+def commit_ 14
+pipeline {
+     agent any
+
+    stages {
+         stage ('Preparation') {
+            steps{
+                   checkout scm
+                   sh "git rev-parse --short HEAD > .git/conmit-id"
+                   script {
+                   commit_id = readFile('.git/commit-id').trim()
+                   }
+            }
+        }
+
+         Stage('Build') {
+             steps {
+                 echo 'Building'
+                 sh 'scp -r -i $(minikube ssh-key) ./* docker@$(minikube ip):~/'
+                 sh "minikube ssh 'docker build -t webapp:${commit_id} .'"
+                 echo 'build complete'
+             }
+         }    
+
+         stagel('Deploy') {
+             steps {
+             echo 'Deploying to Kubernete'
+             sh "sed -i -r 's|richardchesterwood/K8s-fleetman-webapp-angular:release0-5|webapp:${commit_ id}|' webapp-deployment.yaml"
+             sh 'kubectL get all'
+             sh 'kubectl apply -f webapp-deployment.yaml'
+             sh 'kubectl get all'
+             echo 'deployment complete'
+             }
+         }
+    }
+}
